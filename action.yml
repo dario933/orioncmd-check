@@ -1,0 +1,44 @@
+name: OrionCmd Post-Deploy Check
+description: Keyless HTTPS availability and certificate-expiry checks after deployment.
+author: OrionCmd
+branding:
+  icon: shield
+  color: blue
+inputs:
+  url:
+    description: Public HTTPS URL to check, using port 443.
+    required: true
+  minimum-days:
+    description: Fail when any certificate in the redirect chain has this many days or fewer remaining.
+    default: '21'
+  expected-status:
+    description: Accepted final HTTP statuses, as comma-separated codes or ranges.
+    default: '200-299'
+  attempts:
+    description: Maximum attempts for temporary network or HTTP failures (1-5).
+    default: '3'
+  retry-delay-seconds:
+    description: Delay between attempts (0-30 seconds).
+    default: '5'
+  timeout-seconds:
+    description: Per-request deadline, including DNS and TLS (1-30 seconds).
+    default: '10'
+  fail-on-error:
+    description: Set false to report failures as warnings without failing the GitHub step.
+    default: 'true'
+outputs:
+  status:
+    description: passed or failed; warning-only failures still report failed.
+  http-status:
+    description: Last observed HTTP status (the final status on success), or empty if unknown.
+  days-remaining:
+    description: Whole days remaining on the earliest-expiring observed certificate.
+  certificate-expires-at:
+    description: Earliest observed certificate expiry as an ISO timestamp.
+  attempts-used:
+    description: Number of attempts made.
+  report:
+    description: JSON containing status, observed certificates, HTTP status, and failure reason.
+runs:
+  using: node24
+  main: src/index.mjs

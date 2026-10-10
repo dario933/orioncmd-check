@@ -1,0 +1,47 @@
+name: Action checks
+on:
+  push:
+    paths: ['action.yml', 'src/**', 'test/**', 'README.md', '.github/workflows/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Unit and scheduled-example tests
+        run: node --test test/*.test.mjs
+      - name: Check a valid public certificate
+        uses: ./
+        with:
+          url: https://example.com
+          minimum-days: '0'
+      - name: Confirm renewal threshold produces a failure
+        id: expiry
+        continue-on-error: true
+        uses: ./
+        with:
+          url: https://example.com
+          minimum-days: '3650'
+          attempts: '1'
+      - name: Assert the expected expiry failure
+        if: always()
+        env:
+          CHECK_STATUS: ${{ steps.expiry.outputs.status }}
+          DAYS_REMAINING: ${{ steps.expiry.outputs.days-remaining }}
+          STEP_OUTCOME: ${{ steps.expiry.outcome }}
+        run: |
+          test "$STEP_OUTCOME" = failure
+          test "$CHECK_STATUS" = failed
+          test -n "$DAYS_REMAINING"
+      - name: Verify public release installation
+        uses: dario933/orioncmd-check@v1
+        with:
+          url: https://example.com
+          minimum-days: '0'
